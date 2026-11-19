@@ -957,6 +957,23 @@ function renderSettings() {
   var players = appData.players;
   var pinEl = document.getElementById('pinInput');
   if (pinEl) pinEl.value = '';
+  var html = '';
+  for (var i = 0; i < players.length; i++) {
+    html += '<div class="player-row">';
+    html += '<input type="text" id="playerName' + i + '" value="' + players[i].replace(/"/g, '&quot;') + '" maxlength="12" placeholder="玩家' + (i+1) + '">';
+    if (players.length > 2) {
+      html += '<button class="remove-btn" onclick="removePlayerField(' + i + ')">✕</button>';
+    }
+    html += '</div>';
+  }
+  document.getElementById('playerSettings').innerHTML = html;
+
+  var addBtn = document.querySelector('.btn-add');
+  if (players.length >= MAX_PLAYERS) {
+    addBtn.style.display = 'none';
+  } else {
+    addBtn.style.display = '';
+  }
   updateSettingsLock();
 }
 
@@ -990,25 +1007,6 @@ function showSettingsUnlock() {
   }
   showUnlockModal();
 }
-  var html = '';
-  for (var i = 0; i < players.length; i++) {
-    html += '<div class="player-row">';
-    html += '<input type="text" id="playerName' + i + '" value="' + players[i].replace(/"/g, '&quot;') + '" maxlength="12" placeholder="玩家' + (i+1) + '">';
-    if (players.length > 2) {
-      html += '<button class="remove-btn" onclick="removePlayerField(' + i + ')">✕</button>';
-    }
-    html += '</div>';
-  }
-  document.getElementById('playerSettings').innerHTML = html;
-
-  var addBtn = document.querySelector('.btn-add');
-  if (players.length >= MAX_PLAYERS) {
-    addBtn.style.display = 'none';
-  } else {
-    addBtn.style.display = '';
-  }
-}
-
 function addPlayerField() {
   var players = appData.players;
   if (players.length >= MAX_PLAYERS) { toast('最多 ' + MAX_PLAYERS + ' 位玩家'); return; }
