@@ -120,6 +120,64 @@
   .chart-bar-track { background: rgba(0,0,0,0.3); border-radius: 6px; height: 24px; position: relative; overflow: hidden; }
   .chart-bar-fill { height: 100%; border-radius: 6px; transition: width .5s; }
 
+  /* Highlight cards */
+  .hl-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .hl-card {
+    border-radius: 14px; padding: 18px; text-align: center; position: relative; overflow: hidden;
+  }
+  .hl-win { background: linear-gradient(135deg, rgba(46,204,113,0.2), rgba(39,174,96,0.3)); border: 1px solid rgba(46,204,113,0.4); }
+  .hl-lose { background: linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.3)); border: 1px solid rgba(231,76,60,0.4); }
+  .hl-card .hl-icon { font-size: 2em; margin-bottom: 4px; }
+  .hl-card .hl-label { font-size: 0.75em; color: #ccc; margin-bottom: 4px; }
+  .hl-card .hl-name { font-size: 1.1em; font-weight: bold; margin-bottom: 2px; }
+  .hl-card .hl-score { font-size: 1.8em; font-weight: bold; }
+
+  /* Ranking list */
+  .rank-list { }
+  .rank-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 14px; margin-bottom: 8px;
+    background: rgba(0,0,0,0.15); border-radius: 12px; border-left: 4px solid transparent;
+    transition: transform .15s;
+  }
+  .rank-item:hover { transform: translateX(4px); }
+  .rank-item.rank-win { border-left-color: #2ecc71; }
+  .rank-item.rank-lose { border-left-color: #e74c3c; }
+  .rank-item.rank-zero { border-left-color: #555; }
+  .rank-num {
+    flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-weight: bold; font-size: 0.85em;
+    background: rgba(255,255,255,0.1); color: #ccc;
+  }
+  .rank-item:nth-child(1) .rank-num { background: #ffd700; color: #333; }
+  .rank-item:nth-child(2) .rank-num { background: #c0c0c0; color: #333; }
+  .rank-item:nth-child(3) .rank-num { background: #cd7f32; color: #fff; }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-name { font-weight: bold; font-size: 1em; }
+  .rank-detail { font-size: 0.75em; color: #999; margin-top: 2px; }
+  .rank-score { font-size: 1.4em; font-weight: bold; flex: 0 0 auto; }
+
+  /* Bi-directional bar */
+  .bibar-container { margin-bottom: 14px; }
+  .bibar-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.85em; margin-bottom: 4px; }
+  .bibar-name { font-weight: bold; }
+  .bibar-score { font-weight: bold; }
+  .bibar-track {
+    background: rgba(0,0,0,0.3); border-radius: 6px; height: 22px; position: relative;
+    overflow: hidden; display: flex;
+  }
+  .bibar-half { flex: 1; position: relative; }
+  .bibar-neg-fill {
+    position: absolute; right: 0; top: 0; height: 100%; border-radius: 6px 0 0 6px;
+    background: linear-gradient(90deg, #c0392b, #e74c3c); transition: width .5s;
+  }
+  .bibar-pos-fill {
+    position: absolute; left: 0; top: 0; height: 100%; border-radius: 0 6px 6px 0;
+    background: linear-gradient(90deg, #2ecc71, #27ae60); transition: width .5s;
+  }
+  .bibar-center {
+    position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: rgba(255,255,255,0.2); z-index: 1;
+  }
+
   .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 0.95em; }
   .note-text { font-size: 0.82em; color: #ccc; line-height: 1.6; margin-top: 12px; }
   .note-text li { margin-bottom: 4px; margin-left: 18px; }
@@ -179,14 +237,14 @@
   <div id="view-home">
     <div class="card">
       <h2>📅 本月戰況 — <span id="currentMonthLabel"></span></h2>
-      <div class="stats-grid" id="monthStats"></div>
-      <div id="monthChart"></div>
+      <div id="monthHighlight"></div>
+      <div id="monthRank"></div>
       <div id="monthGames"></div>
     </div>
     <div class="card">
       <h2>🏆 累計總積分</h2>
-      <div id="totalChart"></div>
-      <div class="stats-grid" id="totalStats"></div>
+      <div id="totalHighlight"></div>
+      <div id="totalRank"></div>
     </div>
     <div class="card">
       <h2>📌 月結算一覽</h2>
@@ -367,74 +425,177 @@ function renderHome() {
 
   document.getElementById('currentMonthLabel').innerText = monthLabel(cm);
 
+  // === Month scores + win/loss stats ===
   var monthGames = games.filter(function(g) { return ym(g.date) === cm; });
   var monthScores = {};
-  for (var i = 0; i < players.length; i++) monthScores[players[i]] = 0;
+  var monthWins = {};
+  var monthLosses = {};
+  var monthDraws = {};
+  var monthGamesCount = {};
+  for (var i = 0; i < players.length; i++) {
+    monthScores[players[i]] = 0;
+    monthWins[players[i]] = 0;
+    monthLosses[players[i]] = 0;
+    monthDraws[players[i]] = 0;
+    monthGamesCount[players[i]] = 0;
+  }
   for (var i = 0; i < monthGames.length; i++) {
     var s = monthGames[i].scores;
     for (var name in s) {
-      if (name in monthScores) monthScores[name] += s[name];
+      if (name in monthScores) {
+        monthScores[name] += s[name];
+        monthGamesCount[name]++;
+        if (s[name] > 0) monthWins[name]++;
+        else if (s[name] < 0) monthLosses[name]++;
+        else monthDraws[name]++;
+      }
     }
   }
 
-  var statsHtml = '';
-  var monthVals = Object.values(monthScores);
-  var maxAbs = Math.max.apply(null, monthVals.map(Math.abs)) || 1;
-  for (var i = 0; i < players.length; i++) {
-    var p = players[i];
-    statsHtml += '<div class="stat-card"><div class="label">' + p + '</div><div class="' + scoreClass(monthScores[p] || 0) + '">' + fmtScore(monthScores[p] || 0) + '</div></div>';
-  }
-  document.getElementById('monthStats').innerHTML = statsHtml;
+  // Sorted players by month score
+  var monthSorted = players.slice().sort(function(a, b) {
+    return monthScores[b] - monthScores[a];
+  });
 
-  var chartHtml = '';
-  for (var i = 0; i < players.length; i++) {
-    var p = players[i];
-    var val = monthScores[p] || 0;
-    var pct = Math.abs(val) / maxAbs * 100;
-    var color = val > 0 ? '#2ecc71' : val < 0 ? '#e74c3c' : '#666';
-    chartHtml += '<div class="chart-bar-container">';
-    chartHtml += '<div class="chart-bar-label"><span>' + p + '</span><span class="' + scoreClass(val) + '">' + fmtScore(val) + '</span></div>';
-    chartHtml += '<div class="chart-bar-track"><div class="chart-bar-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>';
-    chartHtml += '</div>';
+  // === Highlight: top winner & top loser ===
+  var hlHtml = '';
+  var winner = monthSorted[0];
+  var loser = monthSorted[monthSorted.length - 1];
+  var winnerScore = monthScores[winner] || 0;
+  var loserScore = monthScores[loser] || 0;
+
+  hlHtml += '<div class="hl-grid">';
+  if (winnerScore > 0) {
+    hlHtml += '<div class="hl-card hl-win">';
+    hlHtml += '<div class="hl-icon">🏆</div>';
+    hlHtml += '<div class="hl-label">本月最大贏家</div>';
+    hlHtml += '<div class="hl-name">' + winner + '</div>';
+    hlHtml += '<div class="hl-score" style="color:#69f0ae;">' + fmtScore(winnerScore) + '</div>';
+    hlHtml += '</div>';
+  } else {
+    hlHtml += '<div class="hl-card hl-win" style="opacity:0.4;">';
+    hlHtml += '<div class="hl-icon">🤷</div>';
+    hlHtml += '<div class="hl-label">還沒人贏</div>';
+    hlHtml += '<div class="hl-name">—</div>';
+    hlHtml += '<div class="hl-score" style="color:#999;">0</div>';
+    hlHtml += '</div>';
   }
-  document.getElementById('monthChart').innerHTML = chartHtml;
+  if (loserScore < 0) {
+    hlHtml += '<div class="hl-card hl-lose">';
+    hlHtml += '<div class="hl-icon">😅</div>';
+    hlHtml += '<div class="hl-label">本月最大輸家</div>';
+    hlHtml += '<div class="hl-name">' + loser + '</div>';
+    hlHtml += '<div class="hl-score" style="color:#ff8a80;">' + fmtScore(loserScore) + '</div>';
+    hlHtml += '</div>';
+  } else {
+    hlHtml += '<div class="hl-card hl-lose" style="opacity:0.4;">';
+    hlHtml += '<div class="hl-icon">😎</div>';
+    hlHtml += '<div class="hl-label">沒人輸錢</div>';
+    hlHtml += '<div class="hl-name">—</div>';
+    hlHtml += '<div class="hl-score" style="color:#999;">0</div>';
+    hlHtml += '</div>';
+  }
+  hlHtml += '</div>';
+  document.getElementById('monthHighlight').innerHTML = hlHtml;
+
+  // === Month ranking list ===
+  var maxAbsM = Math.max.apply(null, monthSorted.map(function(p) { return Math.abs(monthScores[p] || 0); })) || 1;
+  var rankHtml = '<div class="rank-list">';
+  var medals = ['🥇', '🥈', '🥉'];
+  for (var i = 0; i < monthSorted.length; i++) {
+    var p = monthSorted[i];
+    var val = monthScores[p] || 0;
+    var cls = val > 0 ? 'rank-win' : val < 0 ? 'rank-lose' : 'rank-zero';
+    var w = monthWins[p] || 0;
+    var l = monthLosses[p] || 0;
+    var d = monthDraws[p] || 0;
+    var gc = monthGamesCount[p] || 0;
+    rankHtml += '<div class="rank-item ' + cls + '">';
+    rankHtml += '<div class="rank-num">' + (i < 3 ? medals[i] : (i + 1)) + '</div>';
+    rankHtml += '<div class="rank-info">';
+    rankHtml += '<div class="rank-name">' + p + '</div>';
+    rankHtml += '<div class="rank-detail">' + gc + ' 場 · 贏 ' + w + ' 輸 ' + l;
+    if (d > 0) rankHtml += ' 平 ' + d;
+    rankHtml += '</div>';
+    rankHtml += '</div>';
+    rankHtml += '<div class="' + scoreClass(val) + ' rank-score">' + fmtScore(val) + '</div>';
+    rankHtml += '</div>';
+  }
+  rankHtml += '</div>';
+  document.getElementById('monthRank').innerHTML = rankHtml;
 
   var mgHtml = '<div style="margin-top:14px;font-size:0.85em;color:#ccc;">本月已打 <b style="color:#fff;">' + monthGames.length + '</b> 場</div>';
   document.getElementById('monthGames').innerHTML = mgHtml;
 
-  // Total scores
+  // === Total scores + win/loss stats ===
   var totalScores = {};
-  for (var i = 0; i < players.length; i++) totalScores[players[i]] = 0;
+  var totalWins = {};
+  var totalLosses = {};
+  var totalGamesCount = {};
+  for (var i = 0; i < players.length; i++) {
+    totalScores[players[i]] = 0;
+    totalWins[players[i]] = 0;
+    totalLosses[players[i]] = 0;
+    totalGamesCount[players[i]] = 0;
+  }
   for (var i = 0; i < games.length; i++) {
     var s = games[i].scores;
     for (var name in s) {
-      if (name in totalScores) totalScores[name] += s[name];
+      if (name in totalScores) {
+        totalScores[name] += s[name];
+        totalGamesCount[name]++;
+        if (s[name] > 0) totalWins[name]++;
+        else if (s[name] < 0) totalLosses[name]++;
+      }
     }
   }
 
-  var totalVals = players.map(function(p) { return totalScores[p] || 0; });
-  var maxAbsT = Math.max.apply(null, totalVals.map(Math.abs)) || 1;
-  var tChartHtml = '';
-  for (var i = 0; i < players.length; i++) {
-    var p = players[i];
+  var totalSorted = players.slice().sort(function(a, b) {
+    return totalScores[b] - totalScores[a];
+  });
+
+  // Total highlight
+  var tHlHtml = '<div class="hl-grid">';
+  var tWinner = totalSorted[0];
+  var tLoser = totalSorted[totalSorted.length - 1];
+  var tWinScore = totalScores[tWinner] || 0;
+  var tLoseScore = totalScores[tLoser] || 0;
+
+  if (tWinScore > 0) {
+    tHlHtml += '<div class="hl-card hl-win"><div class="hl-icon">👑</div><div class="hl-label">累計最大贏家</div><div class="hl-name">' + tWinner + '</div><div class="hl-score" style="color:#69f0ae;">' + fmtScore(tWinScore) + '</div></div>';
+  } else {
+    tHlHtml += '<div class="hl-card hl-win" style="opacity:0.4;"><div class="hl-icon">🤷</div><div class="hl-label">還沒人贏</div><div class="hl-name">—</div><div class="hl-score" style="color:#999;">0</div></div>';
+  }
+  if (tLoseScore < 0) {
+    tHlHtml += '<div class="hl-card hl-lose"><div class="hl-icon">💸</div><div class="hl-label">累計最大輸家</div><div class="hl-name">' + tLoser + '</div><div class="hl-score" style="color:#ff8a80;">' + fmtScore(tLoseScore) + '</div></div>';
+  } else {
+    tHlHtml += '<div class="hl-card hl-lose" style="opacity:0.4;"><div class="hl-icon">😎</div><div class="hl-label">沒人輸錢</div><div class="hl-name">—</div><div class="hl-score" style="color:#999;">0</div></div>';
+  }
+  tHlHtml += '</div>';
+  document.getElementById('totalHighlight').innerHTML = tHlHtml;
+
+  // Total ranking
+  var tRankHtml = '<div class="rank-list">';
+  for (var i = 0; i < totalSorted.length; i++) {
+    var p = totalSorted[i];
     var val = totalScores[p] || 0;
-    var pctT = Math.abs(val) / maxAbsT * 100;
-    var colorT = val > 0 ? '#2ecc71' : val < 0 ? '#e74c3c' : '#666';
-    tChartHtml += '<div class="chart-bar-container">';
-    tChartHtml += '<div class="chart-bar-label"><span>' + p + '</span><span class="' + scoreClass(val) + '">' + fmtScore(val) + '</span></div>';
-    tChartHtml += '<div class="chart-bar-track"><div class="chart-bar-fill" style="width:' + pctT + '%;background:' + colorT + ';"></div></div>';
-    tChartHtml += '</div>';
+    var cls = val > 0 ? 'rank-win' : val < 0 ? 'rank-lose' : 'rank-zero';
+    var w = totalWins[p] || 0;
+    var l = totalLosses[p] || 0;
+    var gc = totalGamesCount[p] || 0;
+    tRankHtml += '<div class="rank-item ' + cls + '">';
+    tRankHtml += '<div class="rank-num">' + (i < 3 ? medals[i] : (i + 1)) + '</div>';
+    tRankHtml += '<div class="rank-info">';
+    tRankHtml += '<div class="rank-name">' + p + '</div>';
+    tRankHtml += '<div class="rank-detail">' + gc + ' 場 · 贏 ' + w + ' 輸 ' + l + '</div>';
+    tRankHtml += '</div>';
+    tRankHtml += '<div class="' + scoreClass(val) + ' rank-score">' + fmtScore(val) + '</div>';
+    tRankHtml += '</div>';
   }
-  document.getElementById('totalChart').innerHTML = tChartHtml;
+  tRankHtml += '</div>';
+  document.getElementById('totalRank').innerHTML = tRankHtml;
 
-  var tStatsHtml = '';
-  for (var i = 0; i < players.length; i++) {
-    var p = players[i];
-    tStatsHtml += '<div class="stat-card"><div class="label">' + p + '</div><div class="' + scoreClass(totalScores[p] || 0) + '">' + fmtScore(totalScores[p] || 0) + '</div></div>';
-  }
-  document.getElementById('totalStats').innerHTML = tStatsHtml;
-
-  // Monthly summary
+  // === Monthly summary table ===
   var months = [];
   var seen = {};
   for (var i = 0; i < games.length; i++) {
