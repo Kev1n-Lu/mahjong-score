@@ -15,29 +15,29 @@
     --green-light: #2e7d32;
     --gold: #ffdd99;
     --red: #c5172e;
-    --bg-grad: linear-gradient(160deg, #1a0a2e 0%, #2d1b4e 25%, #3a1a5e 50%, #2e1b5e 75%, #1e0a3e 100%);
+    --bg-grad: linear-gradient(160deg, #f3e8ff 0%, #e9d5ff 25%, #ddd6fe 50%, #e0d4f5 75%, #f0e6ff 100%);
   }
   body {
     font-family: -apple-system, "Microsoft JhengHei", "PingFang TC", sans-serif;
     background: var(--bg-grad);
-    min-height: 100vh; color: #fff; padding: 16px;
+    min-height: 100vh; color: #3a2a5e; padding: 16px;
   }
   .container { max-width: 720px; margin: 0 auto; }
   h1 { text-align: center; font-size: 1.8em; margin: 16px 0 4px; }
-  .subtitle { text-align: center; color: var(--gold); margin-bottom: 20px; font-size: 0.95em; }
+  .subtitle { text-align: center; color: #7c5ca8; margin-bottom: 20px; font-size: 0.95em; }
 
-  .nav { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(0,0,0,0.2); border-radius: 12px; padding: 4px; }
+  .nav { display: flex; gap: 4px; margin-bottom: 20px; background: rgba(255,255,255,0.4); border-radius: 12px; padding: 4px; }
   .nav button {
     flex: 1; padding: 12px 4px; border: none; border-radius: 8px; cursor: pointer;
-    font-size: 0.9em; font-weight: bold; transition: all .2s; background: transparent; color: #ccc;
+    font-size: 0.9em; font-weight: bold; transition: all .2s; background: transparent; color: #8a6abf;
   }
   .nav button.active { background: var(--green-light); color: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
 
   .card {
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.55); border: 1px solid rgba(180,160,220,0.3);
     border-radius: 14px; padding: 20px; margin-bottom: 16px; backdrop-filter: blur(6px);
   }
-  .card h2 { font-size: 1.2em; margin-bottom: 14px; color: var(--gold); }
+  .card h2 { font-size: 1.2em; margin-bottom: 14px; color: #6b4ca0; }
 
   .btn {
     display: inline-block; padding: 12px 28px; border: none; border-radius: 10px;
@@ -79,7 +79,7 @@
   .stat-card {
     background: rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; text-align: center;
   }
-  .stat-card .label { font-size: 0.8em; color: #ccc; margin-bottom: 4px; }
+  .stat-card .label { font-size: 0.8em; color: #6b5a8a; margin-bottom: 4px; }
   .stat-card .value { font-size: 1.6em; font-weight: bold; }
 
   .game-record {
@@ -91,7 +91,7 @@
   .game-record .score-chip {
     background: rgba(255,255,255,0.1); border-radius: 6px; padding: 4px 10px; font-size: 0.85em;
   }
-  .game-record .note { color: #aaa; font-size: 0.8em; margin-top: 6px; }
+  .game-record .note { color: #9a8aba; font-size: 0.8em; margin-top: 6px; }
   .game-record .actions { margin-top: 8px; display: flex; gap: 8px; }
 
   .month-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
@@ -128,7 +128,7 @@
   .hl-win { background: linear-gradient(135deg, rgba(46,204,113,0.2), rgba(39,174,96,0.3)); border: 1px solid rgba(46,204,113,0.4); }
   .hl-lose { background: linear-gradient(135deg, rgba(231,76,60,0.2), rgba(192,57,43,0.3)); border: 1px solid rgba(231,76,60,0.4); }
   .hl-card .hl-icon { font-size: 2em; margin-bottom: 4px; }
-  .hl-card .hl-label { font-size: 0.75em; color: #ccc; margin-bottom: 4px; }
+  .hl-card .hl-label { font-size: 0.75em; color: #6b5a8a; margin-bottom: 4px; }
   .hl-card .hl-name { font-size: 1.1em; font-weight: bold; margin-bottom: 2px; }
   .hl-card .hl-score { font-size: 1.8em; font-weight: bold; }
 
@@ -146,14 +146,14 @@
   .rank-num {
     flex: 0 0 28px; width: 28px; height: 28px; border-radius: 50%; display: flex;
     align-items: center; justify-content: center; font-weight: bold; font-size: 0.85em;
-    background: rgba(255,255,255,0.1); color: #ccc;
+    background: rgba(255,255,255,0.1); color: #6b5a8a;
   }
   .rank-item:nth-child(1) .rank-num { background: #ffd700; color: #333; }
   .rank-item:nth-child(2) .rank-num { background: #c0c0c0; color: #333; }
   .rank-item:nth-child(3) .rank-num { background: #cd7f32; color: #fff; }
   .rank-info { flex: 1; min-width: 0; }
   .rank-name { font-weight: bold; font-size: 1em; }
-  .rank-detail { font-size: 0.75em; color: #999; margin-top: 2px; }
+  .rank-detail { font-size: 0.75em; color: #9a8aba; margin-top: 2px; }
   .rank-score { font-size: 1.4em; font-weight: bold; flex: 0 0 auto; }
 
   /* Bi-directional bar */
@@ -185,7 +185,7 @@
     z-index: 100000; color: #fff; transition: opacity .4s;
   }
   .loading-screen .loader-icon { font-size: 3em; margin-bottom: 16px; animation: spin 1.2s linear infinite; }
-  .loading-screen .loader-text { font-size: 1.1em; color: #ffdd99; }
+  .loading-screen .loader-text { font-size: 1.1em; color: #6b4ca0; }
   @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   .loading-screen.fade-out { opacity: 0; pointer-events: none; }
   .sync-indicator {
@@ -195,8 +195,8 @@
   }
   .sync-indicator.show { display: flex; }
 
-  .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 0.95em; }
-  .note-text { font-size: 0.82em; color: #ccc; line-height: 1.6; margin-top: 12px; }
+  .empty-msg { text-align: center; color: #9a8aba; padding: 40px 20px; font-size: 0.95em; }
+  .note-text { font-size: 0.82em; color: #6b5a8a; line-height: 1.6; margin-top: 12px; }
   .note-text li { margin-bottom: 4px; margin-left: 18px; }
 
   .player-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
