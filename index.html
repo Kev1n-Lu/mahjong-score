@@ -178,6 +178,23 @@
     position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: rgba(255,255,255,0.2); z-index: 1;
   }
 
+  .loading-screen {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: linear-gradient(160deg, #0d1b2a 0%, #1b2a4a 25%, #1a3a4a 50%, #1e3a2a 75%, #1a3020 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    z-index: 100000; color: #fff; transition: opacity .4s;
+  }
+  .loading-screen .loader-icon { font-size: 3em; margin-bottom: 16px; animation: spin 1.2s linear infinite; }
+  .loading-screen .loader-text { font-size: 1.1em; color: #ffdd99; }
+  @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .loading-screen.fade-out { opacity: 0; pointer-events: none; }
+  .sync-indicator {
+    position: fixed; top: 8px; right: 8px; background: rgba(0,0,0,0.6); color: #69f0ae;
+    padding: 4px 12px; border-radius: 20px; font-size: 0.75em; z-index: 9998;
+    display: none; align-items: center; gap: 4px;
+  }
+  .sync-indicator.show { display: flex; }
+
   .empty-msg { text-align: center; color: #aaa; padding: 40px 20px; font-size: 0.95em; }
   .note-text { font-size: 0.82em; color: #ccc; line-height: 1.6; margin-top: 12px; }
   .note-text li { margin-bottom: 4px; margin-left: 18px; }
@@ -222,6 +239,11 @@
 </style>
 </head>
 <body>
+<div id="loadingScreen" class="loading-screen">
+  <div class="loader-icon">🀄</div>
+  <div class="loader-text">載入資料中...</div>
+</div>
+<div id="syncIndicator" class="sync-indicator"><span>🔄</span> 同步中</div>
 <div class="container">
   <h1>🀄 寶慶路 - 積分統計表</h1>
   <div class="subtitle">和朋友每個月結算的分數紀錄</div>
@@ -344,6 +366,7 @@
 var STORE_KEY = 'mahjong_score_v1';
 var DEFAULT_PLAYERS = ['玩家A', '玩家B', '玩家C', '玩家D'];
 var MAX_PLAYERS = 12;
+var API_URL = 'https://script.google.com/macros/s/AKfycbwiKZHo2gjTIzRBGg5JQBhYPAhKr2ydldegOaK2sfL2bItuY5vARxPGwf6zmhMhuZdJUQ/exec';
 
 function loadData() {
   try {
@@ -358,8 +381,52 @@ function loadData() {
   }
 }
 
-function saveData(data) {
+function saveLocal(data) {
   localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+var cloudSyncing = false;
+
+function showSync() {
+  var el = document.getElementById('syncIndicator');
+  if (el) el.classList.add('show');
+}
+
+function hideSync() {
+  var el = document.getElementById('syncIndicator');
+  if (el) el.classList.remove('show');
+}
+
+function saveData(data) {
+  saveLocal(data);
+  // Async push to cloud (fire and forget)
+  if (cloudSyncing) return;
+  cloudSyncing = true;
+  showSync();
+  fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(data)
+  }).then(function(res) { return res.text(); })
+    .then(function() { cloudSyncing = false; hideSync(); })
+    .catch(function() { cloudSyncing = false; hideSync(); });
+}
+
+function cloudLoad() {
+  return fetch(API_URL)
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      if (data && data.players && data.games) {
+        if (!data.pin) data.pin = '1234';
+        saveLocal(data);
+        appData = data;
+      }
+      return appData;
+    })
+    .catch(function(e) {
+      console.log('Cloud load failed, using local:', e);
+      return appData;
+    });
 }
 
 var appData = loadData();
@@ -1106,7 +1173,23 @@ function closeModal() {
   document.getElementById('modalContainer').innerHTML = '';
 }
 
-showTab('home');
+// ==================== Init ====================
+function init() {
+  cloudLoad().then(function() {
+    var loading = document.getElementById('loadingScreen');
+    if (loading) {
+      loading.classList.add('fade-out');
+      setTimeout(function() { loading.style.display = 'none'; }, 400);
+    }
+    showTab('home');
+  }).catch(function() {
+    var loading = document.getElementById('loadingScreen');
+    if (loading) loading.style.display = 'none';
+    showTab('home');
+  });
+}
+
+init();
 </script>
 
 <canvas id="moneyCanvas" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;"></canvas>
