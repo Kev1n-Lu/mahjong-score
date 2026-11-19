@@ -304,7 +304,6 @@
       <div id="playerSettings"></div>
       <button class="btn btn-add btn-sm" style="margin-top:8px;width:100%;" onclick="addPlayerField()">➕ 新增玩家</button>
       <button class="btn btn-green btn-sm" style="margin-top:10px;width:100%;" onclick="savePlayers()">💾 儲存玩家名單</button>
-    </div>
     <div class="card">
       <h2>🔐 管理者 PIN 碼</h2>
       <p style="font-size:0.85em;color:#ccc;margin-bottom:14px;">設定 PIN 碼後，編輯/刪除紀錄需先解鎖。預設為 1234。</p>
@@ -320,6 +319,7 @@
         <button class="btn btn-outline" onclick="document.getElementById('importFile').click()">📥 匯入 JSON</button>
         <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
         <button class="btn btn-danger" onclick="confirmClear()">🗑️ 清除所有資料</button>
+      </div>
       </div>
       </div>
     </div>
