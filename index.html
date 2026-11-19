@@ -475,6 +475,7 @@ function setWL(i, mode) {
 
 // ==================== Add Game Form ====================
 function renderAddForm() {
+  editingGameId = null;
   var players = appData.players;
   document.getElementById('gameDate').value = todayStr();
 
@@ -493,6 +494,8 @@ function renderAddForm() {
   document.getElementById('playerPickList').innerHTML = html;
   document.getElementById('gameNote').value = '';
   document.getElementById('sumWarn').innerHTML = '';
+  var addH2 = document.getElementById('view-add').querySelector('h2');
+  if (addH2) addH2.innerText = '➕ 新增一場紀錄';
 }
 
 function togglePick(i) {
@@ -574,9 +577,20 @@ function saveGame() {
   }
 
   var note = document.getElementById('gameNote').value.trim();
-  appData.games.push({ id: uid(), date: date, scores: scores, note: note });
+  if (editingGameId) {
+    var idx = appData.games.findIndex(function(g){ return g.id === editingGameId; });
+    if (idx >= 0) {
+      appData.games[idx].date = date;
+      appData.games[idx].scores = scores;
+      appData.games[idx].note = note;
+    }
+    editingGameId = null;
+    toast('✓ 已更新！');
+  } else {
+    appData.games.push({ id: uid(), date: date, scores: scores, note: note });
+    toast('✓ 已儲存！');
+  }
   saveData(appData);
-  toast('✓ 已儲存！');
   resetForm();
   showTab('home');
 }
@@ -629,6 +643,7 @@ function renderHistory() {
     }
     html += '</div>';
     html += '<div class="actions">';
+    html += '<button class="btn btn-outline btn-sm" onclick="editGame(\'' + g.id + '\')">✏ 編輯</button>';
     html += '<button class="btn btn-outline btn-sm" onclick="deleteGame(\'' + g.id + '\')">🗑 刪除</button>';
     html += '</div>';
     html += '</div>';
@@ -642,6 +657,44 @@ function deleteGame(id) {
   saveData(appData);
   toast('已刪除');
   renderHistory();
+}
+
+var editingGameId = null;
+
+function editGame(id) {
+  var game = appData.games.find(function(g){ return g.id === id; });
+  if (!game) return;
+  editingGameId = id;
+  showTab('add');
+  document.getElementById('gameDate').value = game.date;
+  document.getElementById('gameNote').value = game.note || '';
+  var players = appData.players;
+  for (var i = 0; i < players.length; i++) {
+    if (game.scores.hasOwnProperty(players[i])) {
+      var row = document.getElementById('pick' + i);
+      var cb = document.getElementById('cb' + i);
+      var sa = document.getElementById('sa' + i);
+      var inp = document.getElementById('pscore' + i);
+      row.classList.add('checked');
+      cb.innerHTML = '\u2713';
+      sa.classList.add('active');
+      var raw = game.scores[players[i]];
+      if (raw > 0) {
+        pickMode[i] = 1;
+        document.getElementById('wlwin' + i).classList.add('active');
+        inp.value = raw;
+      } else if (raw < 0) {
+        pickMode[i] = -1;
+        document.getElementById('wllose' + i).classList.add('active');
+        inp.value = Math.abs(raw);
+      } else {
+        pickMode[i] = 0;
+        inp.value = 0;
+      }
+    }
+  }
+  checkSum();
+  document.getElementById('view-add').querySelector('h2').innerText = '\u270F \u7DE8\u8F2F\u7D00\u9304\uFF08\u4FEE\u6539\u5F8C\u6309\u5132\u5B58\u8986\u5BEB\uFF09';
 }
 
 // ==================== Settings View ====================
