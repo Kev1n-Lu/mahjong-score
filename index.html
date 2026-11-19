@@ -607,7 +607,10 @@ function saveGame() {
   }
   saveData(appData);
   resetForm();
-  function updateAdminBar() {
+  showTab('home');
+}
+
+function updateAdminBar() {
   var label = document.getElementById('adminLockLabel');
   var btn = document.querySelector('#adminBar button');
   if (!label) return;
@@ -672,7 +675,6 @@ function savePin() {
 }
 
 showTab('home');
-}
 
 function resetForm() {
   renderAddForm();
