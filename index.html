@@ -160,6 +160,7 @@
     .score-grid { grid-template-columns: 1fr 1fr; }
     .stats-grid { grid-template-columns: 1fr 1fr; }
   }
+  .pin-input { text-align:center; font-size:1.5em; letter-spacing:0.5em; }
 </style>
 </head>
 <body>
@@ -215,6 +216,10 @@
   <div id="view-history" class="hidden">
     <div class="card">
       <h2>📋 歷史紀錄</h2>
+      <div id="adminBar" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">
+        <span id="adminLockLabel" style="font-size:0.85em;color:#ffdd99;">🔒 管理者已鎖定</span>
+        <button class="btn btn-outline btn-sm" onclick="showUnlockModal()">🔓 解鎖</button>
+      </div>
       <div class="month-bar">
         <label style="margin:0;">篩選月份</label>
         <select id="historyMonth" onchange="renderHistory()">
@@ -233,6 +238,14 @@
       <div id="playerSettings"></div>
       <button class="btn btn-add btn-sm" style="margin-top:8px;width:100%;" onclick="addPlayerField()">➕ 新增玩家</button>
       <button class="btn btn-green btn-sm" style="margin-top:10px;width:100%;" onclick="savePlayers()">💾 儲存玩家名單</button>
+    </div>
+    <div class="card">
+      <h2>🔐 管理者 PIN 碼</h2>
+      <p style="font-size:0.85em;color:#ccc;margin-bottom:14px;">設定 PIN 碼後，編輯/刪除紀錄需先解鎖。預設為 1234。</p>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <input type="password" id="pinInput" placeholder="4~8 位數字" maxlength="8" style="flex:1;margin-bottom:0;">
+        <button class="btn btn-green btn-sm" onclick="savePin()">💾 儲存</button>
+      </div>
     </div>
     <div class="card">
       <h2>💾 資料管理</h2>
@@ -268,12 +281,13 @@ var MAX_PLAYERS = 12;
 function loadData() {
   try {
     var raw = localStorage.getItem(STORE_KEY);
-    if (!raw) return { players: DEFAULT_PLAYERS.slice(), games: [] };
+    if (!raw) return { players: DEFAULT_PLAYERS.slice(), games: [], pin: '1234' };
     var d = JSON.parse(raw);
-    if (!d.players || !d.games) return { players: DEFAULT_PLAYERS.slice(), games: [] };
+    if (!d.players || !d.games) return { players: DEFAULT_PLAYERS.slice(), games: [], pin: '1234' };
+    if (!d.pin) d.pin = '1234';
     return d;
   } catch(e) {
-    return { players: DEFAULT_PLAYERS.slice(), games: [] };
+    return { players: DEFAULT_PLAYERS.slice(), games: [], pin: '1234' };
   }
 }
 
@@ -282,6 +296,7 @@ function saveData(data) {
 }
 
 var appData = loadData();
+var adminUnlocked = false;
 
 // ==================== Utilities ====================
 function uid() {
@@ -592,7 +607,71 @@ function saveGame() {
   }
   saveData(appData);
   resetForm();
-  showTab('home');
+  function updateAdminBar() {
+  var label = document.getElementById('adminLockLabel');
+  var btn = document.querySelector('#adminBar button');
+  if (!label) return;
+  if (adminUnlocked) {
+    label.innerText = '🔓 管理者已解鎖';
+    label.style.color = '#69f0ae';
+    if (btn) btn.innerText = '🔒 鎖定';
+  } else {
+    label.innerText = '🔒 管理者已鎖定';
+    label.style.color = '#ffdd99';
+    if (btn) btn.innerText = '🔓 解鎖';
+  }
+}
+
+function showUnlockModal() {
+  if (adminUnlocked) {
+    adminUnlocked = false;
+    updateAdminBar();
+    renderHistory();
+    toast('已鎖定');
+    return;
+  }
+  var html = '<div class="modal-overlay" onclick="if(event.target===this)closeModal()">';
+  html += '<div class="modal">';
+  html += '<h3>🔓 管理者解鎖</h3>';
+  html += '<p style="margin-bottom:16px;">請輸入 PIN 碼以解鎖編輯/刪除功能</p>';
+  html += '<input type="password" id="unlockPin" class="pin-input" placeholder="●●●●" maxlength="8">';
+  html += '<div id="pinError" style="color:#ff8a80;font-size:0.85em;margin:8px 0;min-height:1em;"></div>';
+  html += '<div style="display:flex;gap:10px;">';
+  html += '<button class="btn btn-green" style="flex:1;" onclick="tryUnlock()">🔓 解鎖</button>';
+  html += '<button class="btn btn-outline" style="flex:1;" onclick="closeModal()">取消</button>';
+  html += '</div></div></div>';
+  document.getElementById('modalContainer').innerHTML = html;
+  var pinInput = document.getElementById('unlockPin');
+  if (pinInput) {
+    pinInput.focus();
+    pinInput.addEventListener('keydown', function(e){ if(e.key==='Enter') tryUnlock(); });
+  }
+}
+
+function tryUnlock() {
+  var input = document.getElementById('unlockPin').value.trim();
+  var errEl = document.getElementById('pinError');
+  if (!input) { errEl.innerText = '請輸入 PIN 碼'; return; }
+  if (input === appData.pin) {
+    adminUnlocked = true;
+    closeModal();
+    updateAdminBar();
+    renderHistory();
+    toast('✓ 已解鎖');
+  } else {
+    errEl.innerText = 'PIN 碼錯誤';
+  }
+}
+
+function savePin() {
+  var v = document.getElementById('pinInput').value.trim();
+  if (!v || v.length < 4) { toast('PIN 碼至少 4 位數'); return; }
+  appData.pin = v;
+  saveData(appData);
+  toast('✓ PIN 碼已更新');
+}
+
+showTab('home');
 }
 
 function resetForm() {
@@ -602,6 +681,7 @@ function resetForm() {
 // ==================== History View ====================
 function renderHistory() {
   var players = appData.players;
+  updateAdminBar();
   var games = appData.games.slice().sort(function(a, b) {
     return b.date.localeCompare(a.date) || b.id.localeCompare(a.id);
   });
@@ -642,10 +722,12 @@ function renderHistory() {
       html += '<span class="score-chip"><span class="' + scoreClass(s[name]) + '">' + name + ' ' + fmtScore(s[name]) + '</span></span>';
     }
     html += '</div>';
-    html += '<div class="actions">';
-    html += '<button class="btn btn-outline btn-sm" onclick="editGame(\'' + g.id + '\')">✏ 編輯</button>';
-    html += '<button class="btn btn-outline btn-sm" onclick="deleteGame(\'' + g.id + '\')">🗑 刪除</button>';
-    html += '</div>';
+    if (adminUnlocked) {
+      html += '<div class="actions">';
+      html += '<button class="btn btn-outline btn-sm" onclick="editGame(\'' + g.id + '\')">✏ 編輯</button>';
+      html += '<button class="btn btn-outline btn-sm" onclick="deleteGame(\'' + g.id + '\')">🗑 刪除</button>';
+      html += '</div>';
+    }
     html += '</div>';
   }
   document.getElementById('historyList').innerHTML = html;
@@ -700,6 +782,8 @@ function editGame(id) {
 // ==================== Settings View ====================
 function renderSettings() {
   var players = appData.players;
+  var pinEl = document.getElementById('pinInput');
+  if (pinEl) pinEl.value = '';
   var html = '';
   for (var i = 0; i < players.length; i++) {
     html += '<div class="player-row">';
