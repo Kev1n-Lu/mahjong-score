@@ -843,7 +843,7 @@ function renderMonthChart() {
   for (var name in scores) { var a = Math.abs(scores[name]); if (a > maxAbs) maxAbs = a; }
   var el = document.getElementById('monthChart');
   if (!el) return;
-  var html = '<div style="margin:8px 0 4px;font-size:0.85em;font-weight:bold;color:#6b4ca0;">\uD83D\uDCCA \u7576\u6708\u7A4D\u5206</div>';
+  var html = '<div style="margin:8px 0 4px;font-size:0.85em;font-weight:bold;color:#6b4ca0;">\uD83D\uDCCA ' + monthLabel(cm) + ' \u7A4D\u5206</div>';
   for (var name in scores) {
     var val = scores[name];
     var pct = Math.abs(val) / maxAbs * 50;
