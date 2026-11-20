@@ -178,6 +178,46 @@
     position: absolute; left: 50%; top: 0; width: 2px; height: 100%; background: rgba(255,255,255,0.2); z-index: 1;
   }
 
+  /* Month switcher */
+  .month-switch { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+  .month-switch button {
+    width: 36px; height: 36px; border: none; border-radius: 50%; cursor: pointer;
+    font-size: 1.1em; background: rgba(180,160,220,0.25); color: #4a3070; transition: background .2s;
+  }
+  .month-switch button:hover { background: rgba(180,160,220,0.45); }
+  .month-switch .month-title { flex: 1; text-align: center; font-size: 1.1em; font-weight: bold; color: #6b4ca0; }
+
+  /* Settlement */
+  .settle-list { margin-top: 12px; }
+  .settle-item {
+    background: rgba(255,255,255,0.4); border-radius: 10px; padding: 12px 14px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px; font-size: 0.95em;
+  }
+  .settle-item .from { color: #d32f2f; font-weight: bold; }
+  .settle-item .arrow { color: #6b4ca0; }
+  .settle-item .to { color: #1b8a4a; font-weight: bold; }
+  .settle-item .amount { margin-left: auto; font-weight: bold; color: #4a3070; }
+  .settle-empty { text-align: center; color: #8a7aba; padding: 16px; font-size: 0.9em; }
+
+  /* Search bar */
+  .search-bar { margin-bottom: 12px; }
+  .search-bar input { margin-bottom: 0; }
+  .date-range { display: flex; gap: 8px; margin-bottom: 10px; }
+  .date-range input { flex: 1; margin-bottom: 0; font-size: 0.9em; }
+
+  /* Share button */
+  .btn-share { background: linear-gradient(135deg,#9b59b6,#8e44ad); color: #fff; }
+  .btn-share:hover { transform: translateY(-2px); }
+
+  /* Live badge */
+  .live-badge {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 0.75em;
+    background: rgba(46,204,113,0.2); color: #1b8a4a; padding: 2px 10px; border-radius: 20px;
+    margin-left: 8px;
+  }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; animation: pulse 1.5s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
   .loading-screen {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(160deg, #f3e8ff 0%, #e9d5ff 25%, #ddd6fe 50%, #e0d4f5 75%, #f0e6ff 100%);
@@ -244,6 +284,7 @@
   <div class="loader-text">載入資料中...</div>
 </div>
 <div id="syncIndicator" class="sync-indicator"><span>🔄</span> 同步中</div>
+<span class="live-badge" id="liveBadge"><span class="live-dot"></span>即時同步</span>
 <div class="container">
   <h1>🀄 寶慶路 - 積分統計表</h1>
 
@@ -257,10 +298,18 @@
   <!-- ==================== Home ==================== -->
   <div id="view-home">
     <div class="card">
-      <h2>📅 本月戰況 — <span id="currentMonthLabel"></span></h2>
+      <div class="month-switch">
+        <button onclick="switchMonth(-1)">◀</button>
+        <span class="month-title" id="currentMonthLabel"></span>
+        <button onclick="switchMonth(1)">▶</button>
+      </div>
       <div id="monthHighlight"></div>
       <div id="monthRank"></div>
       <div id="monthGames"></div>
+    </div>
+    <div class="card">
+      <h2>💰 分攤結算 — <span id="settleMonthLabel"></span></h2>
+      <div id="settlement"></div>
     </div>
     <div class="card">
       <h2>🏆 累計總積分</h2>
@@ -268,7 +317,7 @@
       <div id="totalRank"></div>
     </div>
     <div class="card">
-      <h2>📌 月結算一覽</h2>
+      <h2>📌 月結算一覽 <button class="btn btn-share btn-sm" style="float:right;" onclick="shareResult()">📸 分享</button></h2>
       <div id="monthlySummary"></div>
     </div>
   </div>
@@ -298,6 +347,13 @@
       <div id="adminBar" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">
         <span id="adminLockLabel" style="font-size:0.85em;color:#6b4ca0;">🔒 管理者已鎖定</span>
         <button class="btn btn-outline btn-sm" onclick="showUnlockModal()">🔓 解鎖</button>
+      </div>
+      <div class="search-bar">
+        <input type="text" id="historySearch" placeholder="搜尋玩家或地點..." oninput="renderHistory()">
+      </div>
+      <div class="date-range">
+        <input type="date" id="historyDateFrom" onchange="renderHistory()">
+        <input type="date" id="historyDateTo" onchange="renderHistory()">
       </div>
       <div class="month-bar">
         <label style="margin:0;">篩選月份</label>
@@ -397,7 +453,12 @@ function hideSync() {
 }
 
 function saveData(data) {
+  data.updatedAt = Date.now();
   saveLocal(data);
+  // Conflict check: if cloud version is newer, warn before overwriting
+  if (lastCloudVersion > 0 && data.updatedAt < lastCloudVersion) {
+    if (!confirm('⚠️ 雲端資料已被其他人更新，仍要覆蓋嗎？')) return;
+  }
   // Async push to cloud (fire and forget)
   if (cloudSyncing) return;
   cloudSyncing = true;
@@ -407,7 +468,7 @@ function saveData(data) {
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(data)
   }).then(function(res) { return res.text(); })
-    .then(function() { cloudSyncing = false; hideSync(); })
+    .then(function() { cloudSyncing = false; hideSync(); lastCloudVersion = data.updatedAt; })
     .catch(function() { cloudSyncing = false; hideSync(); });
 }
 
@@ -419,6 +480,7 @@ function cloudLoad() {
         if (!data.pin) data.pin = '1234';
         saveLocal(data);
         appData = data;
+        if (data.updatedAt) lastCloudVersion = data.updatedAt;
       }
       return appData;
     })
@@ -426,6 +488,33 @@ function cloudLoad() {
       console.log('Cloud load failed, using local:', e);
       return appData;
     });
+}
+
+// ==================== Auto Refresh ====================
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(function() {
+    if (cloudSyncing) return;
+    fetch(API_URL)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data && data.updatedAt && data.updatedAt > lastCloudVersion) {
+          if (!data.pin) data.pin = '1234';
+          appData = data;
+          saveLocal(data);
+          lastCloudVersion = data.updatedAt;
+          // Refresh current view
+          var activeTab = document.querySelector('.nav button.active');
+          if (activeTab) {
+            var tabName = activeTab.id.replace('tab-', '');
+            if (tabName === 'home') renderHome();
+            if (tabName === 'history') renderHistory();
+          }
+          toast('🔄 資料已更新');
+        }
+      })
+      .catch(function() {});
+  }, 30000);
 }
 
 var appData = loadData();
@@ -601,6 +690,7 @@ function renderHome() {
 
   var mgHtml = '<div style="margin-top:14px;font-size:0.85em;color:#ccc;">本月已打 <b style="color:#fff;">' + monthGames.length + '</b> 場</div>';
   document.getElementById('monthGames').innerHTML = mgHtml;
+  renderSettlement(cm);
 
   // === Total scores + win/loss stats ===
   var totalScores = {};
@@ -940,7 +1030,30 @@ function renderHistory() {
   }
 
   var filterVal = sel.value;
-  var filtered = filterVal ? games.filter(function(g) { return ym(g.date) === filterVal; }) : games;
+  var searchTerm = '';
+  var searchEl = document.getElementById('historySearch');
+  if (searchEl) searchTerm = searchEl.value.trim().toLowerCase();
+  var dateFrom = '';
+  var dateTo = '';
+  var dfEl = document.getElementById('historyDateFrom');
+  var dtEl = document.getElementById('historyDateTo');
+  if (dfEl) dateFrom = dfEl.value;
+  if (dtEl) dateTo = dtEl.value;
+
+  var filtered = games.filter(function(g) {
+    if (filterVal && ym(g.date) !== filterVal) return false;
+    if (dateFrom && g.date < dateFrom) return false;
+    if (dateTo && g.date > dateTo) return false;
+    if (searchTerm) {
+      var matchName = false;
+      for (var name in g.scores) {
+        if (name.toLowerCase().indexOf(searchTerm) !== -1) { matchName = true; break; }
+      }
+      var matchNote = (g.note || '').toLowerCase().indexOf(searchTerm) !== -1;
+      if (!matchName && !matchNote) return false;
+    }
+    return true;
+  });
 
   if (filtered.length === 0) {
     document.getElementById('historyList').innerHTML = '<div class="empty-msg">還沒有紀錄</div>';
@@ -1181,10 +1294,12 @@ function init() {
       setTimeout(function() { loading.style.display = 'none'; }, 400);
     }
     showTab('home');
+    startAutoRefresh();
   }).catch(function() {
     var loading = document.getElementById('loadingScreen');
     if (loading) loading.style.display = 'none';
     showTab('home');
+    startAutoRefresh();
   });
 }
 
