@@ -1094,6 +1094,52 @@ function renderSettlement(cm) {
   el.innerHTML = html;
 }
 
+function shareResult() {
+  var players = appData.players;
+  var games = appData.games;
+  var cm = viewingMonth;
+  var monthGames = games.filter(function(g) { return ym(g.date) === cm; });
+
+  var scores = {};
+  for (var i = 0; i < players.length; i++) scores[players[i]] = 0;
+  for (var i = 0; i < monthGames.length; i++) {
+    var s = monthGames[i].scores;
+    for (var name in s) { if (name in scores) scores[name] += s[name]; }
+  }
+
+  var sorted = players.slice().sort(function(a, b) { return scores[b] - scores[a]; });
+
+  var text = '🀄 寶慶路積分 - ' + monthLabel(cm) + '\n';
+  text += '共 ' + monthGames.length + ' 場\n';
+  text += '──────────\n';
+  var medals = ['🥇', '🥈', '🥉'];
+  for (var i = 0; i < sorted.length; i++) {
+    var p2 = sorted[i];
+    var val = scores[p2] || 0;
+    var icon = i < 3 ? medals[i] : (i + 1) + '.';
+    text += icon + ' ' + p2 + ': ' + fmtScore(val) + '\n';
+  }
+  text += '──────────\n';
+
+  var transfers = calculateSettlement(scores);
+  if (transfers.length > 0) {
+    text += '💰 結算：\n';
+    for (var i = 0; i < transfers.length; i++) {
+      text += transfers[i].from + ' → ' + transfers[i].to + ' $' + transfers[i].amount + '\n';
+    }
+  }
+
+  if (navigator.share) {
+    navigator.share({ title: '🀄 寶慶路積分', text: text }).catch(function(){});
+  } else {
+    navigator.clipboard.writeText(text).then(function() {
+      toast('✓ 已複製到剪貼簿，貼到 LINE 即可分享');
+    }).catch(function() {
+      alert(text);
+    });
+  }
+}
+
 function renderHistory() {
   var players = appData.players;
   updateAdminBar();
