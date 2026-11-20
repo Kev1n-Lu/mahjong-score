@@ -519,6 +519,9 @@ function startAutoRefresh() {
 
 var appData = loadData();
 var adminUnlocked = false;
+var viewingMonth = currentYM();
+var lastCloudVersion = 0;
+var autoRefreshTimer = null;
 
 // ==================== Utilities ====================
 function uid() {
