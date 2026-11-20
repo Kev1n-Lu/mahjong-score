@@ -13,7 +13,7 @@
     --green-dark: #0b3d1a;
     --green-mid: #1a5d2a;
     --green-light: #2e7d32;
-    --gold: #ffdd99;
+    --gold: #6b4ca0;
     --red: #c5172e;
     --bg-grad: linear-gradient(160deg, #f3e8ff 0%, #e9d5ff 25%, #ddd6fe 50%, #e0d4f5 75%, #f0e6ff 100%);
   }
@@ -296,7 +296,7 @@
     <div class="card">
       <h2>📋 歷史紀錄</h2>
       <div id="adminBar" style="margin-bottom:12px;display:flex;align-items:center;gap:10px;">
-        <span id="adminLockLabel" style="font-size:0.85em;color:#ffdd99;">🔒 管理者已鎖定</span>
+        <span id="adminLockLabel" style="font-size:0.85em;color:#6b4ca0;">🔒 管理者已鎖定</span>
         <button class="btn btn-outline btn-sm" onclick="showUnlockModal()">🔓 解鎖</button>
       </div>
       <div class="month-bar">
@@ -313,7 +313,7 @@
   <div id="view-settings" class="hidden">
     <div class="card">
       <div id="settingsLockBar" style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:14px;background:rgba(180,160,220,0.15);border-radius:12px;">
-        <span id="settingsLockLabel" style="font-size:0.9em;color:#ffdd99;flex:1;">🔒 設定已鎖定 — 輸入 PIN 碼解鎖才能修改</span>
+        <span id="settingsLockLabel" style="font-size:0.9em;color:#6b4ca0;flex:1;">🔒 設定已鎖定 — 輸入 PIN 碼解鎖才能修改</span>
         <button class="btn btn-outline btn-sm" onclick="showSettingsUnlock()">🔓 解鎖</button>
       </div>
       <div id="settingsLocked" style="text-align:center;color:#aaa;padding:20px;font-size:0.9em;">
@@ -856,7 +856,7 @@ function updateAdminBar() {
     if (btn) btn.innerText = '🔒 鎖定';
   } else {
     label.innerText = '🔒 管理者已鎖定';
-    label.style.color = '#ffdd99';
+    label.style.color = '#6b4ca0';
     if (btn) btn.innerText = '🔓 解鎖';
   }
 }
@@ -1057,7 +1057,7 @@ function updateSettingsLock() {
   } else {
     locked.classList.remove('hidden');
     content.classList.add('hidden');
-    if (label) { label.innerText = '🔒 設定已鎖定 — 輸入 PIN 碼解鎖才能修改'; label.style.color = '#ffdd99'; }
+    if (label) { label.innerText = '🔒 設定已鎖定 — 輸入 PIN 碼解鎖才能修改'; label.style.color = '#6b4ca0'; }
     if (btn) btn.innerText = '🔓 解鎖';
   }
 }
